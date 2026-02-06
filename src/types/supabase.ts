@@ -4,173 +4,329 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      recipes: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          category: string;
-          ingredients: Json;
-          instructions: Json;
-          prep_time: number;
-          cook_time: number;
-          servings: number;
-          calories: number;
-          protein: number;
-          carbs: number;
-          fat: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string;
-          name: string;
-          category: string;
-          ingredients: Json;
-          instructions: Json;
-          prep_time: number;
-          cook_time: number;
-          servings: number;
-          calories: number;
-          protein: number;
-          carbs: number;
-          fat: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          category?: string;
-          ingredients?: Json;
-          instructions?: Json;
-          prep_time?: number;
-          cook_time?: number;
-          servings?: number;
-          calories?: number;
-          protein?: number;
-          carbs?: number;
-          fat?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      meal_plans: {
-        Row: {
-          id: string;
-          user_id: string;
-          date: string;
-          meals: Json;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string;
-          date: string;
-          meals: Json;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          date?: string;
-          meals?: Json;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
       food_log_entries: {
         Row: {
-          id: string;
-          user_id: string;
-          date: string;
-          time: string;
-          meal_type: string;
-          foods: Json;
-          created_at: string;
-        };
+          created_at: string | null
+          date: string
+          foods: Json
+          id: string
+          meal_type: string
+          time: string
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          user_id?: string;
-          date: string;
-          time: string;
-          meal_type: string;
-          foods: Json;
-          created_at?: string;
-        };
+          created_at?: string | null
+          date: string
+          foods?: Json
+          id?: string
+          meal_type: string
+          time: string
+          user_id?: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          date?: string;
-          time?: string;
-          meal_type?: string;
-          foods?: Json;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
+          created_at?: string | null
+          date?: string
+          foods?: Json
+          id?: string
+          meal_type?: string
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meal_plans: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          meals: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          meals?: Json
+          user_id?: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          meals?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          calories: number
+          carbs: number
+          category: string
+          cook_time: number
+          created_at: string | null
+          fat: number
+          id: string
+          ingredients: Json
+          instructions: Json
+          name: string
+          prep_time: number
+          protein: number
+          servings: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          category: string
+          cook_time?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          ingredients?: Json
+          instructions?: Json
+          name: string
+          prep_time?: number
+          protein?: number
+          servings?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          category?: string
+          cook_time?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          ingredients?: Json
+          instructions?: Json
+          name?: string
+          prep_time?: number
+          protein?: number
+          servings?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
-          id: string;
-          user_id: string;
-          daily_calorie_goal: number;
-          protein_goal: number;
-          carbs_goal: number;
-          fat_goal: number;
-          dietary_preferences: Json;
-          allergies: Json;
-          usda_api_key: string;
-          created_at: string;
-          updated_at: string;
-        };
+          allergies: Json
+          carbs_goal: number
+          created_at: string | null
+          daily_calorie_goal: number
+          dietary_preferences: Json
+          fat_goal: number
+          id: string
+          protein_goal: number
+          updated_at: string | null
+          usda_api_key: string
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          user_id?: string;
-          daily_calorie_goal?: number;
-          protein_goal?: number;
-          carbs_goal?: number;
-          fat_goal?: number;
-          dietary_preferences?: Json;
-          allergies?: Json;
-          usda_api_key?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
+          allergies?: Json
+          carbs_goal?: number
+          created_at?: string | null
+          daily_calorie_goal?: number
+          dietary_preferences?: Json
+          fat_goal?: number
+          id?: string
+          protein_goal?: number
+          updated_at?: string | null
+          usda_api_key?: string
+          user_id?: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          daily_calorie_goal?: number;
-          protein_goal?: number;
-          carbs_goal?: number;
-          fat_goal?: number;
-          dietary_preferences?: Json;
-          allergies?: Json;
-          usda_api_key?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-    };
+          allergies?: Json
+          carbs_goal?: number
+          created_at?: string | null
+          daily_calorie_goal?: number
+          dietary_preferences?: Json
+          fat_goal?: number
+          id?: string
+          protein_goal?: number
+          updated_at?: string | null
+          usda_api_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
     Views: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Functions: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     Enums: {
-      [_ in never]: never;
-    };
+      [_ in never]: never
+    }
     CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
+      [_ in never]: never
+    }
+  }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
