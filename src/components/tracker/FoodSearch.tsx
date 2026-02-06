@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { searchFoods, nutritionFromSearchResult, type USDASearchResult } from '@/lib/api';
 import type { LoggedFood } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface FoodSearchProps {
   onSelect: (food: LoggedFood) => void;
@@ -14,10 +16,17 @@ export function FoodSearch({ onSelect }: FoodSearchProps) {
   const [results, setResults] = useState<USDASearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const lastSearchRef = useRef(0);
 
   const handleSearch = useCallback(async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
+
+    const now = Date.now();
+    const elapsed = now - lastSearchRef.current;
+    if (elapsed < SEARCH_DEBOUNCE_MS) return;
+    lastSearchRef.current = now;
+
     setLoading(true);
     try {
       const res = await searchFoods(trimmed, undefined, 1, 15);

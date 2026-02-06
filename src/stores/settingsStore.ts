@@ -4,6 +4,16 @@ import { requireAuth } from '@/lib/auth';
 import { settingsFromRow, settingsToUpdate } from '@/lib/mappers';
 import type { UserSettings } from '@/types';
 
+const VALID_THEMES: UserSettings['theme'][] = ['light', 'dark', 'system'];
+
+function getSavedTheme(): UserSettings['theme'] {
+  if (typeof window === 'undefined') return 'system';
+  const stored = localStorage.getItem('theme');
+  return VALID_THEMES.includes(stored as UserSettings['theme'])
+    ? (stored as UserSettings['theme'])
+    : 'system';
+}
+
 const DEFAULT_SETTINGS: UserSettings = {
   id: '',
   dailyCalorieGoal: 2000,
@@ -14,9 +24,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   dietaryPreferences: [],
   allergies: [],
-  theme: (typeof window !== 'undefined'
-    ? (localStorage.getItem('theme') as UserSettings['theme'])
-    : null) || 'system',
+  theme: getSavedTheme(),
   usdaApiKey: '',
 };
 
@@ -47,7 +55,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     const settings = settingsFromRow(data);
-    settings.theme = (localStorage.getItem('theme') as UserSettings['theme']) || 'system';
+    settings.theme = getSavedTheme();
     set({ settings, loaded: true });
   },
 
