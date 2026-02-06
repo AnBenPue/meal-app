@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { foodLogFromRow, foodLogToInsert, foodLogFoodsToUpdate } from '@/lib/mappers';
+import type { Database } from '@/types/supabase';
 import type { FoodLogEntry, LoggedFood, MealType } from '@/types';
 
 interface FoodLogState {
@@ -24,35 +26,82 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
   loadEntriesByDate: async (date) => {
     set({ loading: true });
-    const entries = await db.foodLogs.where('date').equals(date).toArray();
-    set({ entries, loading: false });
+    const { data, error } = await supabase
+      .from('food_log_entries')
+      .select('*')
+      .eq('date', date)
+      .order('time', { ascending: true });
+
+    if (error) {
+      console.error('Failed to load food log:', error);
+      set({ loading: false });
+      return;
+    }
+
+    set({ entries: data.map(foodLogFromRow), loading: false });
   },
 
   addEntry: async (date, mealType, foods) => {
     const now = new Date();
-    const entry: FoodLogEntry = {
-      id: crypto.randomUUID(),
+    const row = foodLogToInsert({
       date,
       time: now.toTimeString().slice(0, 5),
       mealType,
       foods,
-    };
-    await db.foodLogs.add(entry);
+    });
+
+    const { data, error } = await supabase
+      .from('food_log_entries')
+      .insert(row)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add food log entry:', error);
+      throw error;
+    }
+
+    const entry = foodLogFromRow(data);
     set((state) => ({ entries: [...state.entries, entry] }));
     return entry;
   },
 
   updateEntry: async (id, updates) => {
-    await db.foodLogs.update(id, updates);
+    const dbUpdates: Database['public']['Tables']['food_log_entries']['Update'] = {};
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.time !== undefined) dbUpdates.time = updates.time;
+    if (updates.mealType !== undefined) dbUpdates.meal_type = updates.mealType;
+    if (updates.foods !== undefined) dbUpdates.foods = updates.foods as unknown as Database['public']['Tables']['food_log_entries']['Update']['foods'];
+
+    const { data, error } = await supabase
+      .from('food_log_entries')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to update food log entry:', error);
+      return;
+    }
+
+    const updated = foodLogFromRow(data);
     set((state) => ({
-      entries: state.entries.map((e) =>
-        e.id === id ? { ...e, ...updates } : e
-      ),
+      entries: state.entries.map((e) => (e.id === id ? updated : e)),
     }));
   },
 
   deleteEntry: async (id) => {
-    await db.foodLogs.delete(id);
+    const { error } = await supabase
+      .from('food_log_entries')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete food log entry:', error);
+      return;
+    }
+
     set((state) => ({
       entries: state.entries.filter((e) => e.id !== id),
     }));
@@ -63,11 +112,21 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     if (!entry) return;
 
     const updatedFoods = [...entry.foods, food];
-    await db.foodLogs.update(entryId, { foods: updatedFoods });
+    const { data, error } = await supabase
+      .from('food_log_entries')
+      .update(foodLogFoodsToUpdate(updatedFoods))
+      .eq('id', entryId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add food to entry:', error);
+      return;
+    }
+
+    const updated = foodLogFromRow(data);
     set((state) => ({
-      entries: state.entries.map((e) =>
-        e.id === entryId ? { ...e, foods: updatedFoods } : e
-      ),
+      entries: state.entries.map((e) => (e.id === entryId ? updated : e)),
     }));
   },
 
@@ -76,11 +135,21 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     if (!entry) return;
 
     const updatedFoods = entry.foods.filter((_, i) => i !== foodIndex);
-    await db.foodLogs.update(entryId, { foods: updatedFoods });
+    const { data, error } = await supabase
+      .from('food_log_entries')
+      .update(foodLogFoodsToUpdate(updatedFoods))
+      .eq('id', entryId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to remove food from entry:', error);
+      return;
+    }
+
+    const updated = foodLogFromRow(data);
     set((state) => ({
-      entries: state.entries.map((e) =>
-        e.id === entryId ? { ...e, foods: updatedFoods } : e
-      ),
+      entries: state.entries.map((e) => (e.id === entryId ? updated : e)),
     }));
   },
 }));

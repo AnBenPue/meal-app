@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { mealPlanFromRow, mealPlanToUpsert, mealPlanToUpdate } from '@/lib/mappers';
 import type { MealPlan, MealType } from '@/types';
 
 const emptyMeals = (): MealPlan['meals'] => ({
@@ -10,7 +11,6 @@ const emptyMeals = (): MealPlan['meals'] => ({
 });
 
 interface PlannerState {
-  /** Meal plans keyed by date string (YYYY-MM-DD) */
   plans: Record<string, MealPlan>;
   loading: boolean;
 
@@ -34,13 +34,21 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   loadWeek: async (startDate) => {
     set({ loading: true });
     const dates = getWeekDates(startDate);
-    const plans = await db.mealPlans
-      .where('date')
-      .anyOf(dates)
-      .toArray();
+
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .select('*')
+      .in('date', dates);
+
+    if (error) {
+      console.error('Failed to load week:', error);
+      set({ loading: false });
+      return;
+    }
 
     const planMap: Record<string, MealPlan> = { ...get().plans };
-    for (const plan of plans) {
+    for (const row of data) {
+      const plan = mealPlanFromRow(row);
       planMap[plan.date] = plan;
     }
     set({ plans: planMap, loading: false });
@@ -50,11 +58,23 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
 
   addRecipeToSlot: async (date, mealType, recipeId) => {
     const existing = get().plans[date];
-    const plan: MealPlan = existing
-      ? { ...existing, meals: { ...existing.meals, [mealType]: [...existing.meals[mealType], recipeId] } }
-      : { id: crypto.randomUUID(), date, meals: { ...emptyMeals(), [mealType]: [recipeId] } };
+    const meals = existing
+      ? { ...existing.meals, [mealType]: [...existing.meals[mealType], recipeId] }
+      : { ...emptyMeals(), [mealType]: [recipeId] };
 
-    await db.mealPlans.put(plan);
+    const row = mealPlanToUpsert(date, meals);
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .upsert(row, { onConflict: 'user_id,date' })
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add recipe to slot:', error);
+      return;
+    }
+
+    const plan = mealPlanFromRow(data);
     set((state) => ({
       plans: { ...state.plans, [date]: plan },
     }));
@@ -64,17 +84,26 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
     const existing = get().plans[date];
     if (!existing) return;
 
-    const updated: MealPlan = {
-      ...existing,
-      meals: {
-        ...existing.meals,
-        [mealType]: existing.meals[mealType].filter((id) => id !== recipeId),
-      },
+    const meals = {
+      ...existing.meals,
+      [mealType]: existing.meals[mealType].filter((id) => id !== recipeId),
     };
 
-    await db.mealPlans.put(updated);
+    const { data, error } = await supabase
+      .from('meal_plans')
+      .update(mealPlanToUpdate(meals))
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to remove recipe from slot:', error);
+      return;
+    }
+
+    const plan = mealPlanFromRow(data);
     set((state) => ({
-      plans: { ...state.plans, [date]: updated },
+      plans: { ...state.plans, [date]: plan },
     }));
   },
 
@@ -84,7 +113,6 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   },
 }));
 
-/** Get an array of YYYY-MM-DD strings for the week starting at startDate */
 function getWeekDates(startDate: string): string[] {
   const dates: string[] = [];
   const start = new Date(startDate + 'T00:00:00');

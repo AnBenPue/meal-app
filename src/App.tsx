@@ -6,14 +6,18 @@ import {
   CalendarDays,
   ClipboardList,
   Settings as SettingsIcon,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Recipes from '@/pages/Recipes';
 import Planner from '@/pages/Planner';
 import FoodLog from '@/pages/FoodLog';
 import Settings from '@/pages/Settings';
+import Login from '@/pages/Login';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useTheme } from '@/hooks/useTheme';
 
 const navItems = [
@@ -26,12 +30,29 @@ const navItems = [
 
 function App() {
   const { loaded, loadSettings } = useSettingsStore();
+  const { user, loading: authLoading, initialize, signOut } = useAuthStore();
 
   useEffect(() => {
-    if (!loaded) loadSettings();
-  }, [loaded, loadSettings]);
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (user && !loaded) loadSettings();
+  }, [user, loaded, loadSettings]);
 
   useTheme();
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <BrowserRouter>
@@ -59,6 +80,15 @@ function App() {
               {label}
             </NavLink>
           ))}
+          <div className="mt-auto">
+            <button
+              onClick={signOut}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
         </nav>
 
         {/* Main content — extra bottom padding on mobile for bottom nav */}
@@ -92,6 +122,13 @@ function App() {
               {label}
             </NavLink>
           ))}
+          <button
+            onClick={signOut}
+            className="flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+            Sign out
+          </button>
         </nav>
       </div>
     </BrowserRouter>

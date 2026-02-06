@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { recipeFromRow, recipeToInsert, recipeToUpdate } from '@/lib/mappers';
 import type { Recipe, MealType } from '@/types';
 
 interface RecipeState {
@@ -25,42 +26,83 @@ export const useRecipeStore = create<RecipeState>((set) => ({
 
   loadRecipes: async () => {
     set({ loading: true });
-    const recipes = await db.recipes.toArray();
-    set({ recipes, loading: false });
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load recipes:', error);
+      set({ loading: false });
+      return;
+    }
+
+    set({ recipes: data.map(recipeFromRow), loading: false });
   },
 
   addRecipe: async (recipeData) => {
-    const now = new Date();
-    const recipe: Recipe = {
-      ...recipeData,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    await db.recipes.add(recipe);
-    set((state) => ({ recipes: [...state.recipes, recipe] }));
+    const row = recipeToInsert(recipeData);
+    const { data, error } = await supabase
+      .from('recipes')
+      .insert(row)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add recipe:', error);
+      throw error;
+    }
+
+    const recipe = recipeFromRow(data);
+    set((state) => ({ recipes: [recipe, ...state.recipes] }));
     return recipe;
   },
 
   updateRecipe: async (id, updates) => {
-    const updatedFields = { ...updates, updatedAt: new Date() };
-    await db.recipes.update(id, updatedFields);
+    const row = recipeToUpdate(updates);
+    const { data, error } = await supabase
+      .from('recipes')
+      .update(row)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to update recipe:', error);
+      return;
+    }
+
+    const updated = recipeFromRow(data);
     set((state) => ({
-      recipes: state.recipes.map((r) =>
-        r.id === id ? { ...r, ...updatedFields } : r
-      ),
+      recipes: state.recipes.map((r) => (r.id === id ? updated : r)),
     }));
   },
 
   deleteRecipe: async (id) => {
-    await db.recipes.delete(id);
+    const { error } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete recipe:', error);
+      return;
+    }
+
     set((state) => ({
       recipes: state.recipes.filter((r) => r.id !== id),
     }));
   },
 
   getRecipe: async (id) => {
-    return db.recipes.get(id);
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return undefined;
+    return recipeFromRow(data);
   },
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),

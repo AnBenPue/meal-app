@@ -1,11 +1,10 @@
 import { create } from 'zustand';
-import { db } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { settingsFromRow, settingsToUpdate } from '@/lib/mappers';
 import type { UserSettings } from '@/types';
 
-const SETTINGS_ID = 'user-settings';
-
 const DEFAULT_SETTINGS: UserSettings = {
-  id: SETTINGS_ID,
+  id: '',
   dailyCalorieGoal: 2000,
   macroGoals: {
     protein: 150,
@@ -14,7 +13,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   dietaryPreferences: [],
   allergies: [],
-  theme: 'system',
+  theme: (localStorage.getItem('theme') as UserSettings['theme']) || 'system',
   usdaApiKey: '',
 };
 
@@ -31,19 +30,44 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loaded: false,
 
   loadSettings: async () => {
-    const existing = await db.settings.get(SETTINGS_ID);
-    if (existing) {
-      set({ settings: existing, loaded: true });
-    } else {
-      await db.settings.add(DEFAULT_SETTINGS);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (error || !data) {
       set({ settings: DEFAULT_SETTINGS, loaded: true });
+      return;
     }
+
+    const settings = settingsFromRow(data);
+    settings.theme = (localStorage.getItem('theme') as UserSettings['theme']) || 'system';
+    set({ settings, loaded: true });
   },
 
   updateSettings: async (updates) => {
     const current = get().settings;
     const updated: UserSettings = { ...current, ...updates };
-    await db.settings.put(updated);
+
+    if (updates.theme !== undefined) {
+      localStorage.setItem('theme', updates.theme);
+    }
+
+    const dbUpdates = settingsToUpdate(updates);
+    const hasDbFields = Object.keys(dbUpdates).some((k) => k !== 'updated_at');
+    if (hasDbFields) {
+      const { error } = await supabase
+        .from('user_settings')
+        .update(dbUpdates)
+        .eq('id', current.id);
+
+      if (error) {
+        console.error('Failed to update settings:', error);
+        return;
+      }
+    }
+
     set({ settings: updated });
   },
 }));
