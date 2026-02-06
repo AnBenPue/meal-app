@@ -12,12 +12,16 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
+let initialized = false;
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
 
   initialize: async () => {
+    if (initialized) return;
+    initialized = true;
+
     const { data: { session } } = await supabase.auth.getSession();
     set({
       session,
@@ -34,12 +38,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signInWithGoogle: async () => {
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
       },
     });
+    if (error) throw error;
   },
 
   signOut: async () => {

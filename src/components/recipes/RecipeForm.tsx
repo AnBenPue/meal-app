@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Recipe, Ingredient, MealType, NutritionInfo } from '@/types';
 import { calculateRecipeNutrition, ZERO_NUTRITION } from '@/lib/nutrition';
@@ -44,7 +44,7 @@ export function RecipeForm({ initial, onSubmit, onCancel }: RecipeFormProps) {
     initial?.instructions.length ? initial.instructions : [''],
   );
 
-  const totalNutrition = calculateRecipeNutrition(ingredients);
+  const totalNutrition = useMemo(() => calculateRecipeNutrition(ingredients), [ingredients]);
 
   function updateIngredient(index: number, field: keyof Ingredient, value: string | number) {
     setIngredients((prev) =>

@@ -69,7 +69,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
 
     if (error || !data) {
       console.error('Failed to update recipe:', error);
-      return;
+      throw error ?? new Error('Failed to update recipe: no data returned');
     }
 
     const updated = recipeFromRow(data);

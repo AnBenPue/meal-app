@@ -27,15 +27,21 @@ export function scaleNutrition(per100g: NutritionInfo, grams: number): Nutrition
  * Sum multiple nutrition objects together.
  */
 export function sumNutrition(...items: NutritionInfo[]): NutritionInfo {
-  return items.reduce(
+  const raw = items.reduce(
     (total, item) => ({
       calories: total.calories + item.calories,
-      protein: Math.round((total.protein + item.protein) * 10) / 10,
-      carbs: Math.round((total.carbs + item.carbs) * 10) / 10,
-      fat: Math.round((total.fat + item.fat) * 10) / 10,
+      protein: total.protein + item.protein,
+      carbs: total.carbs + item.carbs,
+      fat: total.fat + item.fat,
     }),
     { ...ZERO_NUTRITION },
   );
+  return {
+    calories: Math.round(raw.calories),
+    protein: Math.round(raw.protein * 10) / 10,
+    carbs: Math.round(raw.carbs * 10) / 10,
+    fat: Math.round(raw.fat * 10) / 10,
+  };
 }
 
 /**

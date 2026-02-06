@@ -49,7 +49,7 @@ export function MealEntry({ entry, onDeleteEntry, onRemoveFood }: MealEntryProps
         <div className="space-y-1">
           {entry.foods.map((food, idx) => (
             <div
-              key={idx}
+              key={`${food.name}-${food.nutrition.calories}-${idx}`}
               className="flex items-center justify-between rounded-md bg-muted px-3 py-1.5 text-sm"
             >
               <div>

@@ -39,9 +39,12 @@ export async function searchFoods(
   pageNumber = 1,
   pageSize = 20,
 ): Promise<USDASearchResponse> {
-  const res = await fetch(`${USDA_BASE_URL}/foods/search?api_key=${apiKey}`, {
+  const res = await fetch(`${USDA_BASE_URL}/foods/search`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': apiKey,
+    },
     body: JSON.stringify({
       query,
       pageNumber,
@@ -56,11 +59,17 @@ export async function searchFoods(
     throw new Error(`USDA API error: ${res.status} ${res.statusText}`);
   }
 
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    throw new Error('Failed to parse USDA API response as JSON');
+  }
 }
 
 /**
  * Get detailed nutrition info for a specific food by FDC ID.
+ * Note: The USDA API requires `api_key` as a query parameter for GET requests.
+ * The key is per-user and free (not a shared secret).
  */
 export async function getFoodDetails(
   fdcId: number,
@@ -74,7 +83,13 @@ export async function getFoodDetails(
     throw new Error(`USDA API error: ${res.status} ${res.statusText}`);
   }
 
-  const data = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Failed to parse USDA API response as JSON');
+  }
   return {
     description: data.description,
     nutrition: extractNutrition(data.foodNutrients ?? []),

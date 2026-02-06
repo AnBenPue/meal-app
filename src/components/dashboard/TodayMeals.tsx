@@ -48,7 +48,7 @@ export function TodayMeals({ plan, logEntries, recipesById }: TodayMealsProps) {
                     ))}
                     {/* Logged foods */}
                     {loggedEntry?.foods.map((food, i) => (
-                      <div key={i} className="text-xs text-muted-foreground truncate">
+                      <div key={`${food.name}-${food.nutrition.calories}-${i}`} className="text-xs text-muted-foreground truncate">
                         {food.name}
                         <span className="ml-1 text-[10px]">
                           ({food.nutrition.calories} cal)

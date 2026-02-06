@@ -41,9 +41,8 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .in('date', dates);
 
     if (error) {
-      console.error('Failed to load week:', error);
       set({ loading: false });
-      return;
+      throw new Error(`Failed to load week: ${error.message}`);
     }
 
     const planMap: Record<string, MealPlan> = { ...get().plans };
@@ -70,8 +69,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to add recipe to slot:', error);
-      return;
+      throw new Error(`Failed to add recipe to slot: ${error?.message ?? 'no data returned'}`);
     }
 
     const plan = mealPlanFromRow(data);
@@ -82,7 +80,9 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
 
   removeRecipeFromSlot: async (date, mealType, recipeId) => {
     const existing = get().plans[date];
-    if (!existing) return;
+    if (!existing) {
+      throw new Error(`No meal plan found for date: ${date}`);
+    }
 
     const meals = {
       ...existing.meals,
@@ -97,8 +97,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to remove recipe from slot:', error);
-      return;
+      throw new Error(`Failed to remove recipe from slot: ${error?.message ?? 'no data returned'}`);
     }
 
     const plan = mealPlanFromRow(data);
@@ -108,8 +107,64 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   },
 
   moveRecipe: async (fromDate, fromMeal, toDate, toMeal, recipeId) => {
-    await get().removeRecipeFromSlot(fromDate, fromMeal, recipeId);
-    await get().addRecipeToSlot(toDate, toMeal, recipeId);
+    // Compute both updated meal sets before making any DB calls
+    const fromPlan = get().plans[fromDate];
+    if (!fromPlan) {
+      throw new Error(`No meal plan found for source date: ${fromDate}`);
+    }
+
+    const fromMeals = {
+      ...fromPlan.meals,
+      [fromMeal]: fromPlan.meals[fromMeal].filter((id) => id !== recipeId),
+    };
+
+    // Step 1: Remove from source
+    const { data: removedData, error: removeError } = await supabase
+      .from('meal_plans')
+      .update(mealPlanToUpdate(fromMeals))
+      .eq('id', fromPlan.id)
+      .select()
+      .single();
+
+    if (removeError || !removedData) {
+      throw new Error(`Failed to remove recipe from source: ${removeError?.message ?? 'no data returned'}`);
+    }
+
+    // Step 2: Add to target
+    const toPlan = fromDate === toDate
+      ? mealPlanFromRow(removedData)
+      : get().plans[toDate];
+    const toMeals = toPlan
+      ? { ...toPlan.meals, [toMeal]: [...toPlan.meals[toMeal], recipeId] }
+      : { ...emptyMeals(), [toMeal]: [recipeId] };
+
+    const row = mealPlanToUpsert(toDate, toMeals);
+    const { data: addedData, error: addError } = await supabase
+      .from('meal_plans')
+      .upsert(row, { onConflict: 'user_id,date' })
+      .select()
+      .single();
+
+    if (addError || !addedData) {
+      // Rollback: restore the source plan
+      await supabase
+        .from('meal_plans')
+        .update(mealPlanToUpdate(fromPlan.meals))
+        .eq('id', fromPlan.id);
+
+      throw new Error(`Failed to add recipe to target: ${addError?.message ?? 'no data returned'}`);
+    }
+
+    // Single state update with both changes
+    const updatedFrom = mealPlanFromRow(removedData);
+    const updatedTo = mealPlanFromRow(addedData);
+    set((state) => ({
+      plans: {
+        ...state.plans,
+        [fromDate]: updatedFrom,
+        [toDate]: updatedTo,
+      },
+    }));
   },
 }));
 

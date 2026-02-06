@@ -46,6 +46,13 @@ export default function Dashboard() {
 
   const todayEntries = entries.filter((e) => e.date === today);
 
+  const goals = useMemo(() => ({
+    calories: settings.dailyCalorieGoal,
+    protein: settings.macroGoals.protein,
+    carbs: settings.macroGoals.carbs,
+    fat: settings.macroGoals.fat,
+  }), [settings.dailyCalorieGoal, settings.macroGoals.protein, settings.macroGoals.carbs, settings.macroGoals.fat]);
+
   return (
     <div className="space-y-8">
       <div>
@@ -62,12 +69,7 @@ export default function Dashboard() {
       {/* Macro progress rings */}
       <MacroRings
         current={dailyNutrition}
-        goals={{
-          calories: settings.dailyCalorieGoal,
-          protein: settings.macroGoals.protein,
-          carbs: settings.macroGoals.carbs,
-          fat: settings.macroGoals.fat,
-        }}
+        goals={goals}
       />
 
       {/* Quick actions */}

@@ -13,7 +13,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   },
   dietaryPreferences: [],
   allergies: [],
-  theme: (localStorage.getItem('theme') as UserSettings['theme']) || 'system',
+  theme: (typeof window !== 'undefined'
+    ? (localStorage.getItem('theme') as UserSettings['theme'])
+    : null) || 'system',
   usdaApiKey: '',
 };
 
