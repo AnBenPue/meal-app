@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/auth';
 import { recipeFromRow, recipeToInsert, recipeToUpdate } from '@/lib/mappers';
 import type { Recipe, MealType } from '@/types';
 
@@ -25,6 +26,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   categoryFilter: 'all',
 
   loadRecipes: async () => {
+    await requireAuth();
     set({ loading: true });
     const { data, error } = await supabase
       .from('recipes')
@@ -32,7 +34,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to load recipes:', error);
+      console.error('Failed to load recipes');
       set({ loading: false });
       return;
     }
@@ -41,6 +43,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   },
 
   addRecipe: async (recipeData) => {
+    await requireAuth();
     const row = recipeToInsert(recipeData);
     const { data, error } = await supabase
       .from('recipes')
@@ -49,8 +52,8 @@ export const useRecipeStore = create<RecipeState>((set) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to add recipe:', error);
-      throw error;
+      console.error('Failed to add recipe');
+      throw new Error('Failed to add recipe');
     }
 
     const recipe = recipeFromRow(data);
@@ -59,6 +62,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   },
 
   updateRecipe: async (id, updates) => {
+    await requireAuth();
     const row = recipeToUpdate(updates);
     const { data, error } = await supabase
       .from('recipes')
@@ -68,8 +72,8 @@ export const useRecipeStore = create<RecipeState>((set) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to update recipe:', error);
-      throw error ?? new Error('Failed to update recipe: no data returned');
+      console.error('Failed to update recipe');
+      throw new Error('Failed to update recipe');
     }
 
     const updated = recipeFromRow(data);
@@ -79,13 +83,14 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   },
 
   deleteRecipe: async (id) => {
+    await requireAuth();
     const { error } = await supabase
       .from('recipes')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Failed to delete recipe:', error);
+      console.error('Failed to delete recipe');
       return;
     }
 
@@ -95,6 +100,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   },
 
   getRecipe: async (id) => {
+    await requireAuth();
     const { data, error } = await supabase
       .from('recipes')
       .select('*')

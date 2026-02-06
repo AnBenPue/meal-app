@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Recipe, Ingredient, MealType, NutritionInfo } from '@/types';
 import { calculateRecipeNutrition, ZERO_NUTRITION } from '@/lib/nutrition';
+import { recipeFormSchema } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,7 +95,7 @@ export function RecipeForm({ initial, onSubmit, onCancel }: RecipeFormProps) {
     e.preventDefault();
     const validIngredients = ingredients.filter((i) => i.name.trim());
     const validInstructions = instructions.filter((s) => s.trim());
-    onSubmit({
+    const data = {
       name: name.trim(),
       category,
       ingredients: validIngredients,
@@ -103,7 +104,13 @@ export function RecipeForm({ initial, onSubmit, onCancel }: RecipeFormProps) {
       cookTime,
       servings,
       nutrition: calculateRecipeNutrition(validIngredients),
-    });
+    };
+    const result = recipeFormSchema.safeParse(data);
+    if (!result.success) {
+      alert(result.error.issues.map((i) => i.message).join('\n'));
+      return;
+    }
+    onSubmit(result.data);
   }
 
   return (

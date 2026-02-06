@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/auth';
 import { foodLogFromRow, foodLogToInsert, foodLogFoodsToUpdate } from '@/lib/mappers';
 import type { Database } from '@/types/supabase';
 import type { FoodLogEntry, LoggedFood, MealType } from '@/types';
@@ -25,6 +26,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   loading: false,
 
   loadEntriesByDate: async (date) => {
+    await requireAuth();
     set({ loading: true });
     const { data, error } = await supabase
       .from('food_log_entries')
@@ -33,7 +35,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       .order('time', { ascending: true });
 
     if (error) {
-      console.error('Failed to load food log:', error);
+      console.error('Failed to load food log');
       set({ loading: false });
       return;
     }
@@ -42,6 +44,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   addEntry: async (date, mealType, foods) => {
+    await requireAuth();
     const now = new Date();
     const row = foodLogToInsert({
       date,
@@ -57,8 +60,8 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to add food log entry:', error);
-      throw error;
+      console.error('Failed to add food log entry');
+      throw new Error('Failed to add food log entry');
     }
 
     const entry = foodLogFromRow(data);
@@ -67,6 +70,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   updateEntry: async (id, updates) => {
+    await requireAuth();
     const dbUpdates: Database['public']['Tables']['food_log_entries']['Update'] = {};
     if (updates.date !== undefined) dbUpdates.date = updates.date;
     if (updates.time !== undefined) dbUpdates.time = updates.time;
@@ -81,7 +85,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to update food log entry:', error);
+      console.error('Failed to update food log entry');
       return;
     }
 
@@ -92,13 +96,14 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   deleteEntry: async (id) => {
+    await requireAuth();
     const { error } = await supabase
       .from('food_log_entries')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Failed to delete food log entry:', error);
+      console.error('Failed to delete food log entry');
       return;
     }
 
@@ -108,6 +113,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   addFoodToEntry: async (entryId, food) => {
+    await requireAuth();
     const entry = get().entries.find((e) => e.id === entryId);
     if (!entry) return;
 
@@ -120,7 +126,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to add food to entry:', error);
+      console.error('Failed to add food to entry');
       return;
     }
 
@@ -131,6 +137,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   removeFoodFromEntry: async (entryId, foodIndex) => {
+    await requireAuth();
     const entry = get().entries.find((e) => e.id === entryId);
     if (!entry) return;
 
@@ -143,7 +150,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      console.error('Failed to remove food from entry:', error);
+      console.error('Failed to remove food from entry');
       return;
     }
 

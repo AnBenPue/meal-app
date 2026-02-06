@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/auth';
 import { settingsFromRow, settingsToUpdate } from '@/lib/mappers';
 import type { UserSettings } from '@/types';
 
@@ -32,9 +33,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loaded: false,
 
   loadSettings: async () => {
+    const userId = await requireAuth();
     const { data, error } = await supabase
       .from('user_settings')
       .select('*')
+      .eq('user_id', userId)
       .limit(1)
       .single();
 
@@ -49,6 +52,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSettings: async (updates) => {
+    await requireAuth();
     const current = get().settings;
     const updated: UserSettings = { ...current, ...updates };
 
@@ -65,7 +69,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         .eq('id', current.id);
 
       if (error) {
-        console.error('Failed to update settings:', error);
+        console.error('Failed to update settings');
         return;
       }
     }

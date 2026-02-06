@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { LoggedFood } from '@/types';
+import { loggedFoodSchema } from '@/lib/validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -20,13 +21,19 @@ export function ManualFoodEntry({ onAdd }: ManualFoodEntryProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd({
+    const data = {
       name: name.trim(),
       portion,
       unit,
       nutrition: { calories, protein, carbs, fat },
-      source: 'manual',
-    });
+      source: 'manual' as const,
+    };
+    const result = loggedFoodSchema.safeParse(data);
+    if (!result.success) {
+      alert(result.error.issues.map((i) => i.message).join('\n'));
+      return;
+    }
+    onAdd(result.data);
     setName('');
     setPortion(100);
     setUnit('g');

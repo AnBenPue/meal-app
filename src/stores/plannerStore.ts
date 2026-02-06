@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/auth';
 import { mealPlanFromRow, mealPlanToUpsert, mealPlanToUpdate } from '@/lib/mappers';
 import type { MealPlan, MealType } from '@/types';
 
@@ -32,6 +33,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   loading: false,
 
   loadWeek: async (startDate) => {
+    await requireAuth();
     set({ loading: true });
     const dates = getWeekDates(startDate);
 
@@ -42,7 +44,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
 
     if (error) {
       set({ loading: false });
-      throw new Error(`Failed to load week: ${error.message}`);
+      throw new Error('Failed to load meal plans');
     }
 
     const planMap: Record<string, MealPlan> = { ...get().plans };
@@ -56,6 +58,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   getPlan: (date) => get().plans[date],
 
   addRecipeToSlot: async (date, mealType, recipeId) => {
+    await requireAuth();
     const existing = get().plans[date];
     const meals = existing
       ? { ...existing.meals, [mealType]: [...existing.meals[mealType], recipeId] }
@@ -69,7 +72,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      throw new Error(`Failed to add recipe to slot: ${error?.message ?? 'no data returned'}`);
+      throw new Error('Failed to add recipe to meal plan');
     }
 
     const plan = mealPlanFromRow(data);
@@ -79,9 +82,10 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   },
 
   removeRecipeFromSlot: async (date, mealType, recipeId) => {
+    await requireAuth();
     const existing = get().plans[date];
     if (!existing) {
-      throw new Error(`No meal plan found for date: ${date}`);
+      throw new Error('No meal plan found for this date');
     }
 
     const meals = {
@@ -97,7 +101,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .single();
 
     if (error || !data) {
-      throw new Error(`Failed to remove recipe from slot: ${error?.message ?? 'no data returned'}`);
+      throw new Error('Failed to remove recipe from meal plan');
     }
 
     const plan = mealPlanFromRow(data);
@@ -107,10 +111,11 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
   },
 
   moveRecipe: async (fromDate, fromMeal, toDate, toMeal, recipeId) => {
+    await requireAuth();
     // Compute both updated meal sets before making any DB calls
     const fromPlan = get().plans[fromDate];
     if (!fromPlan) {
-      throw new Error(`No meal plan found for source date: ${fromDate}`);
+      throw new Error('No meal plan found for the source date');
     }
 
     const fromMeals = {
@@ -127,7 +132,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
       .single();
 
     if (removeError || !removedData) {
-      throw new Error(`Failed to remove recipe from source: ${removeError?.message ?? 'no data returned'}`);
+      throw new Error('Failed to move recipe');
     }
 
     // Step 2: Add to target
@@ -152,7 +157,7 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
         .update(mealPlanToUpdate(fromPlan.meals))
         .eq('id', fromPlan.id);
 
-      throw new Error(`Failed to add recipe to target: ${addError?.message ?? 'no data returned'}`);
+      throw new Error('Failed to move recipe');
     }
 
     // Single state update with both changes
