@@ -13,11 +13,10 @@ import {
 import { Label } from '@/components/ui/label';
 
 interface FoodLoggerProps {
-  apiKey: string;
   onLog: (mealType: MealType, food: LoggedFood) => void;
 }
 
-export function FoodLogger({ apiKey, onLog }: FoodLoggerProps) {
+export function FoodLogger({ onLog }: FoodLoggerProps) {
   const [mealType, setMealType] = useState<MealType>(() => {
     const hour = new Date().getHours();
     if (hour < 10) return 'breakfast';
@@ -53,7 +52,7 @@ export function FoodLogger({ apiKey, onLog }: FoodLoggerProps) {
           <TabsTrigger value="manual" className="flex-1">Manual Entry</TabsTrigger>
         </TabsList>
         <TabsContent value="search" className="mt-3">
-          <FoodSearch apiKey={apiKey} onSelect={handleAdd} />
+          <FoodSearch onSelect={handleAdd} />
         </TabsContent>
         <TabsContent value="manual" className="mt-3">
           <ManualFoodEntry onAdd={handleAdd} />

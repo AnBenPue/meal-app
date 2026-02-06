@@ -1,6 +1,5 @@
+import { supabase } from '@/lib/supabase';
 import type { NutritionInfo } from '@/types';
-
-const USDA_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
 
 /** Nutrient IDs from the USDA FoodData Central API */
 const NUTRIENT_IDS = {
@@ -30,69 +29,65 @@ export interface USDASearchResponse {
 }
 
 /**
+ * Call the USDA proxy Edge Function.
+ * The API key is stored server-side and never sent to the client.
+ */
+async function callUsdaProxy(body: Record<string, unknown>): Promise<unknown> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase.functions.invoke('usda-proxy', {
+    body,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'USDA proxy request failed');
+  }
+
+  return data;
+}
+
+/**
  * Search the USDA FoodData Central database.
- * Requires an API key — get one free at https://fdc.nal.usda.gov/api-key-signup.html
+ * Proxied through a Supabase Edge Function — the API key never leaves the server.
  */
 export async function searchFoods(
   query: string,
-  apiKey: string,
+  _apiKey?: string,
   pageNumber = 1,
   pageSize = 20,
 ): Promise<USDASearchResponse> {
-  const res = await fetch(`${USDA_BASE_URL}/foods/search`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
-    },
-    body: JSON.stringify({
-      query,
-      pageNumber,
-      pageSize,
-      dataType: ['Foundation', 'SR Legacy', 'Branded'],
-      sortBy: 'dataType.keyword',
-      sortOrder: 'asc',
-    }),
+  const data = await callUsdaProxy({
+    action: 'search',
+    query,
+    pageNumber,
+    pageSize,
   });
 
-  if (!res.ok) {
-    throw new Error(`USDA API error: ${res.status} ${res.statusText}`);
-  }
-
-  try {
-    return await res.json();
-  } catch {
-    throw new Error('Failed to parse USDA API response as JSON');
-  }
+  return data as USDASearchResponse;
 }
 
 /**
  * Get detailed nutrition info for a specific food by FDC ID.
- * Note: The USDA API requires `api_key` as a query parameter for GET requests.
- * The key is per-user and free (not a shared secret).
+ * Proxied through a Supabase Edge Function — the API key never leaves the server.
  */
 export async function getFoodDetails(
   fdcId: number,
-  apiKey: string,
+  _apiKey?: string,
 ): Promise<{ description: string; nutrition: NutritionInfo }> {
-  const res = await fetch(
-    `${USDA_BASE_URL}/food/${fdcId}?api_key=${apiKey}&nutrients=${Object.values(NUTRIENT_IDS).join(',')}`,
-  );
-
-  if (!res.ok) {
-    throw new Error(`USDA API error: ${res.status} ${res.statusText}`);
-  }
+  const data = await callUsdaProxy({
+    action: 'details',
+    fdcId,
+    nutrients: Object.values(NUTRIENT_IDS).join(','),
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let data: any;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error('Failed to parse USDA API response as JSON');
-  }
+  const result = data as any;
   return {
-    description: data.description,
-    nutrition: extractNutrition(data.foodNutrients ?? []),
+    description: result.description,
+    nutrition: extractNutrition(result.foodNutrients ?? []),
   };
 }
 

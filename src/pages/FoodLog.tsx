@@ -169,7 +169,6 @@ export default function FoodLog() {
             </DialogDescription>
           </DialogHeader>
           <FoodLogger
-            apiKey={settings.usdaApiKey}
             onLog={(mealType, food) => {
               handleLogFood(mealType, food);
               setDialogOpen(false);

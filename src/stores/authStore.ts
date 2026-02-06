@@ -22,12 +22,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (initialized) return;
     initialized = true;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    set({
-      session,
-      user: session?.user ?? null,
-      loading: false,
-    });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      set({
+        session,
+        user: session?.user ?? null,
+        loading: false,
+      });
+    } catch {
+      set({ user: null, session: null, loading: false });
+      return;
+    }
 
     supabase.auth.onAuthStateChange((_event, session) => {
       set({
@@ -41,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: import.meta.env.VITE_APP_URL || window.location.origin,
       },
     });
     if (error) throw error;

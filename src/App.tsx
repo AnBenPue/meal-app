@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   UtensilsCrossed,
@@ -28,9 +28,102 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  const loading = useAuthStore((s) => s.loading);
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AuthenticatedLayout() {
+  const { user, signOut } = useAuthStore();
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <div className="flex h-screen">
+      {/* Sidebar — desktop */}
+      <nav className="hidden md:flex w-64 flex-col border-r bg-card p-4 gap-1 shrink-0">
+        <h1 className="text-xl font-bold text-primary mb-6 px-3">
+          MealApp
+        </h1>
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )
+            }
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </NavLink>
+        ))}
+        <div className="mt-auto">
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
+      </nav>
+
+      {/* Main content — extra bottom padding on mobile for bottom nav */}
+      <main className="flex-1 overflow-auto p-4 pb-20 md:p-6 md:pb-6">
+        <Routes>
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
+          <Route path="/planner" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
+          <Route path="/log" element={<ProtectedRoute><FoodLog /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-card flex justify-around py-2 z-50">
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) =>
+              cn(
+                'flex flex-col items-center gap-1 text-xs transition-colors',
+                isActive
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+              )
+            }
+          >
+            <Icon className="h-5 w-5" />
+            {label}
+          </NavLink>
+        ))}
+        <button
+          onClick={signOut}
+          className="flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+          Sign out
+        </button>
+      </nav>
+    </div>
+  );
+}
+
 function App() {
   const { loaded, loadSettings } = useSettingsStore();
-  const { user, loading: authLoading, initialize, signOut } = useAuthStore();
+  const { user, loading: authLoading, initialize } = useAuthStore();
 
   useEffect(() => {
     initialize();
@@ -50,87 +143,12 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <Login />;
-  }
-
   return (
     <BrowserRouter>
-      <div className="flex h-screen">
-        {/* Sidebar — desktop */}
-        <nav className="hidden md:flex w-64 flex-col border-r bg-card p-4 gap-1 shrink-0">
-          <h1 className="text-xl font-bold text-primary mb-6 px-3">
-            MealApp
-          </h1>
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-          <div className="mt-auto">
-            <button
-              onClick={signOut}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
-          </div>
-        </nav>
-
-        {/* Main content — extra bottom padding on mobile for bottom nav */}
-        <main className="flex-1 overflow-auto p-4 pb-20 md:p-6 md:pb-6">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/recipes" element={<Recipes />} />
-            <Route path="/planner" element={<Planner />} />
-            <Route path="/log" element={<FoodLog />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
-
-        {/* Mobile bottom nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-card flex justify-around py-2 z-50">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-1 text-xs transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-                )
-              }
-            >
-              <Icon className="h-5 w-5" />
-              {label}
-            </NavLink>
-          ))}
-          <button
-            onClick={signOut}
-            className="flex flex-col items-center gap-1 text-xs text-muted-foreground transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            Sign out
-          </button>
-        </nav>
-      </div>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/*" element={<AuthenticatedLayout />} />
+      </Routes>
     </BrowserRouter>
   );
 }

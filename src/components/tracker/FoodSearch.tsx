@@ -6,11 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 interface FoodSearchProps {
-  apiKey: string;
   onSelect: (food: LoggedFood) => void;
 }
 
-export function FoodSearch({ apiKey, onSelect }: FoodSearchProps) {
+export function FoodSearch({ onSelect }: FoodSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<USDASearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -18,10 +17,10 @@ export function FoodSearch({ apiKey, onSelect }: FoodSearchProps) {
 
   const handleSearch = useCallback(async () => {
     const trimmed = query.trim();
-    if (!trimmed || !apiKey) return;
+    if (!trimmed) return;
     setLoading(true);
     try {
-      const res = await searchFoods(trimmed, apiKey, 1, 15);
+      const res = await searchFoods(trimmed, undefined, 1, 15);
       setResults(res.foods);
     } catch {
       setResults([]);
@@ -29,7 +28,7 @@ export function FoodSearch({ apiKey, onSelect }: FoodSearchProps) {
       setLoading(false);
       setSearched(true);
     }
-  }, [query, apiKey]);
+  }, [query]);
 
   function handleSelect(food: USDASearchResult) {
     const nutrition = nutritionFromSearchResult(food);
@@ -48,24 +47,17 @@ export function FoodSearch({ apiKey, onSelect }: FoodSearchProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={apiKey ? 'Search foods...' : 'Set USDA API key in Settings first'}
+            placeholder="Search foods..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="pl-9"
-            disabled={!apiKey}
           />
         </div>
-        <Button onClick={handleSearch} disabled={!query.trim() || !apiKey || loading}>
+        <Button onClick={handleSearch} disabled={!query.trim() || loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
         </Button>
       </div>
-
-      {!apiKey && (
-        <p className="text-sm text-muted-foreground">
-          Add your free USDA API key in Settings to search the food database.
-        </p>
-      )}
 
       <div className="max-h-60 overflow-y-auto space-y-1">
         {results.map((food) => {
