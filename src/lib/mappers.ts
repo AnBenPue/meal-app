@@ -31,8 +31,8 @@ export function recipeFromRow(row: RecipeRow): Recipe {
       carbs: row.carbs,
       fat: row.fat,
     },
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
+    createdAt: new Date(row.created_at ?? Date.now()),
+    updatedAt: new Date(row.updated_at ?? Date.now()),
   };
 }
 
