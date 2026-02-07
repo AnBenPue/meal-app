@@ -66,6 +66,13 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Today's meals */}
+      <TodayMeals
+        plan={todayPlan}
+        logEntries={todayEntries}
+        recipesById={recipesById}
+      />
+
       {/* Macro progress rings */}
       <MacroRings
         current={dailyNutrition}
@@ -74,13 +81,6 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <QuickActions />
-
-      {/* Today's meals */}
-      <TodayMeals
-        plan={todayPlan}
-        logEntries={todayEntries}
-        recipesById={recipesById}
-      />
     </div>
   );
 }
