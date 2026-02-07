@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import type { Recipe, MealType } from '@/types';
 import { cn } from '@/lib/utils';
+import { RecipePicker } from '@/components/planner/RecipePicker';
 
 interface MealSlotProps {
   date: string;
   mealType: MealType;
   recipes: Recipe[];
+  allRecipes: Recipe[];
+  frequency: Record<string, number>;
   onRemove: (date: string, mealType: MealType, recipeId: string) => void;
-  onDrop: (date: string, mealType: MealType, recipeId: string) => void;
+  onAdd: (date: string, mealType: MealType, recipeId: string) => void;
 }
 
 const mealLabels: Record<MealType, string> = {
@@ -25,38 +27,17 @@ const mealColors: Record<MealType, string> = {
   snack: 'text-green-600 dark:text-green-400',
 };
 
-export function MealSlot({ date, mealType, recipes, onRemove, onDrop }: MealSlotProps) {
-  const [dragOver, setDragOver] = useState(false);
-
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    setDragOver(true);
-  }
-
-  function handleDragLeave() {
-    setDragOver(false);
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragOver(false);
-    const recipeId = e.dataTransfer.getData('text/plain');
-    if (recipeId) {
-      onDrop(date, mealType, recipeId);
-    }
-  }
-
+export function MealSlot({
+  date,
+  mealType,
+  recipes,
+  allRecipes,
+  frequency,
+  onRemove,
+  onAdd,
+}: MealSlotProps) {
   return (
-    <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        'min-h-[3rem] rounded-md border border-dashed p-1.5 transition-colors',
-        dragOver ? 'border-primary bg-primary/5' : 'border-transparent',
-      )}
-    >
+    <div className="min-h-[3rem] rounded-md p-1.5">
       <div className={cn('text-[10px] font-semibold mb-0.5', mealColors[mealType])}>
         {mealLabels[mealType]}
       </div>
@@ -75,6 +56,16 @@ export function MealSlot({ date, mealType, recipes, onRemove, onDrop }: MealSlot
             </button>
           </div>
         ))}
+        <RecipePicker
+          mealType={mealType}
+          recipes={allRecipes}
+          frequency={frequency}
+          onSelect={(recipeId) => onAdd(date, mealType, recipeId)}
+        >
+          <button className="w-full flex items-center justify-center rounded border border-dashed border-muted-foreground/30 py-0.5 text-muted-foreground/50 hover:border-primary/50 hover:text-primary/50 transition-colors">
+            <Plus className="h-3 w-3" />
+          </button>
+        </RecipePicker>
       </div>
     </div>
   );

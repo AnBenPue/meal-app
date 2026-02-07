@@ -7,11 +7,13 @@ interface WeeklyCalendarProps {
   weekStart: string;
   plans: Record<string, MealPlan>;
   recipesById: Record<string, Recipe>;
+  allRecipes: Recipe[];
+  frequency: Record<string, number>;
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onToday: () => void;
   onRemove: (date: string, mealType: MealType, recipeId: string) => void;
-  onDrop: (date: string, mealType: MealType, recipeId: string) => void;
+  onAdd: (date: string, mealType: MealType, recipeId: string) => void;
 }
 
 function getWeekDates(startDate: string): string[] {
@@ -38,11 +40,13 @@ export function WeeklyCalendar({
   weekStart,
   plans,
   recipesById,
+  allRecipes,
+  frequency,
   onPrevWeek,
   onNextWeek,
   onToday,
   onRemove,
-  onDrop,
+  onAdd,
 }: WeeklyCalendarProps) {
   const dates = getWeekDates(weekStart);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -77,8 +81,10 @@ export function WeeklyCalendar({
               plan={plans[date]}
               recipesById={recipesById}
               isToday={date === todayStr}
+              allRecipes={allRecipes}
+              frequency={frequency}
               onRemove={onRemove}
-              onDrop={onDrop}
+              onAdd={onAdd}
             />
           ))}
         </div>

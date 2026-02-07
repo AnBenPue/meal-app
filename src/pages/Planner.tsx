@@ -3,7 +3,7 @@ import { usePlannerStore } from '@/stores/plannerStore';
 import { useRecipeStore } from '@/stores/recipeStore';
 import type { Recipe, MealType } from '@/types';
 import { WeeklyCalendar } from '@/components/planner/WeeklyCalendar';
-import { RecipeSidebar } from '@/components/planner/RecipeSidebar';
+import { useRecipeFrequency } from '@/hooks/useRecipeFrequency';
 
 /** Get Monday of the week containing the given date */
 function getMonday(dateStr: string): string {
@@ -26,6 +26,7 @@ export default function Planner() {
 
   const { plans, loadWeek, addRecipeToSlot, removeRecipeFromSlot } = usePlannerStore();
   const { recipes, loadRecipes } = useRecipeStore();
+  const frequency = useRecipeFrequency(plans);
 
   useEffect(() => {
     loadRecipes();
@@ -41,7 +42,7 @@ export default function Planner() {
     return map;
   }, [recipes]);
 
-  const handleDrop = useCallback(
+  const handleAdd = useCallback(
     (date: string, mealType: MealType, recipeId: string) => {
       addRecipeToSlot(date, mealType, recipeId);
     },
@@ -59,26 +60,18 @@ export default function Planner() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Meal Planner</h1>
 
-      <div className="flex gap-6">
-        {/* Calendar */}
-        <div className="flex-1 min-w-0">
-          <WeeklyCalendar
-            weekStart={weekStart}
-            plans={plans}
-            recipesById={recipesById}
-            onPrevWeek={() => setWeekStart(shiftWeek(weekStart, -1))}
-            onNextWeek={() => setWeekStart(shiftWeek(weekStart, 1))}
-            onToday={() => setWeekStart(getMonday(todayStr))}
-            onRemove={handleRemove}
-            onDrop={handleDrop}
-          />
-        </div>
-
-        {/* Recipe sidebar */}
-        <div className="w-56 shrink-0 hidden lg:block">
-          <RecipeSidebar recipes={recipes} />
-        </div>
-      </div>
+      <WeeklyCalendar
+        weekStart={weekStart}
+        plans={plans}
+        recipesById={recipesById}
+        allRecipes={recipes}
+        frequency={frequency}
+        onPrevWeek={() => setWeekStart(shiftWeek(weekStart, -1))}
+        onNextWeek={() => setWeekStart(shiftWeek(weekStart, 1))}
+        onToday={() => setWeekStart(getMonday(todayStr))}
+        onRemove={handleRemove}
+        onAdd={handleAdd}
+      />
     </div>
   );
 }

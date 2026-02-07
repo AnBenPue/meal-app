@@ -19,13 +19,6 @@ interface PlannerState {
   getPlan: (date: string) => MealPlan | undefined;
   addRecipeToSlot: (date: string, mealType: MealType, recipeId: string) => Promise<void>;
   removeRecipeFromSlot: (date: string, mealType: MealType, recipeId: string) => Promise<void>;
-  moveRecipe: (
-    fromDate: string,
-    fromMeal: MealType,
-    toDate: string,
-    toMeal: MealType,
-    recipeId: string,
-  ) => Promise<void>;
 }
 
 export const usePlannerStore = create<PlannerState>((set, get) => ({
@@ -110,67 +103,6 @@ export const usePlannerStore = create<PlannerState>((set, get) => ({
     }));
   },
 
-  moveRecipe: async (fromDate, fromMeal, toDate, toMeal, recipeId) => {
-    await requireAuth();
-    // Compute both updated meal sets before making any DB calls
-    const fromPlan = get().plans[fromDate];
-    if (!fromPlan) {
-      throw new Error('No meal plan found for the source date');
-    }
-
-    const fromMeals = {
-      ...fromPlan.meals,
-      [fromMeal]: fromPlan.meals[fromMeal].filter((id) => id !== recipeId),
-    };
-
-    // Step 1: Remove from source
-    const { data: removedData, error: removeError } = await supabase
-      .from('meal_plans')
-      .update(mealPlanToUpdate(fromMeals))
-      .eq('id', fromPlan.id)
-      .select()
-      .single();
-
-    if (removeError || !removedData) {
-      throw new Error('Failed to move recipe');
-    }
-
-    // Step 2: Add to target
-    const toPlan = fromDate === toDate
-      ? mealPlanFromRow(removedData)
-      : get().plans[toDate];
-    const toMeals = toPlan
-      ? { ...toPlan.meals, [toMeal]: [...toPlan.meals[toMeal], recipeId] }
-      : { ...emptyMeals(), [toMeal]: [recipeId] };
-
-    const row = mealPlanToUpsert(toDate, toMeals);
-    const { data: addedData, error: addError } = await supabase
-      .from('meal_plans')
-      .upsert(row, { onConflict: 'user_id,date' })
-      .select()
-      .single();
-
-    if (addError || !addedData) {
-      // Rollback: restore the source plan
-      await supabase
-        .from('meal_plans')
-        .update(mealPlanToUpdate(fromPlan.meals))
-        .eq('id', fromPlan.id);
-
-      throw new Error('Failed to move recipe');
-    }
-
-    // Single state update with both changes
-    const updatedFrom = mealPlanFromRow(removedData);
-    const updatedTo = mealPlanFromRow(addedData);
-    set((state) => ({
-      plans: {
-        ...state.plans,
-        [fromDate]: updatedFrom,
-        [toDate]: updatedTo,
-      },
-    }));
-  },
 }));
 
 function getWeekDates(startDate: string): string[] {

@@ -8,8 +8,10 @@ interface DayColumnProps {
   plan: MealPlan | undefined;
   recipesById: Record<string, Recipe>;
   isToday: boolean;
+  allRecipes: Recipe[];
+  frequency: Record<string, number>;
   onRemove: (date: string, mealType: MealType, recipeId: string) => void;
-  onDrop: (date: string, mealType: MealType, recipeId: string) => void;
+  onAdd: (date: string, mealType: MealType, recipeId: string) => void;
 }
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -27,18 +29,20 @@ export function DayColumn({
   plan,
   recipesById,
   isToday,
+  allRecipes,
+  frequency,
   onRemove,
-  onDrop,
+  onAdd,
 }: DayColumnProps) {
   const { dayName, dayNum } = formatDay(date);
 
   // Compute daily nutrition from all assigned recipes
   const allRecipeIds = MEAL_TYPES.flatMap((mt) => plan?.meals[mt] ?? []);
-  const allRecipes = allRecipeIds
+  const dayRecipes = allRecipeIds
     .map((id) => recipesById[id])
     .filter(Boolean);
-  const dayNutrition = allRecipes.length > 0
-    ? sumNutrition(...allRecipes.map((r) => r.nutrition))
+  const dayNutrition = dayRecipes.length > 0
+    ? sumNutrition(...dayRecipes.map((r) => r.nutrition))
     : ZERO_NUTRITION;
 
   return (
@@ -69,15 +73,17 @@ export function DayColumn({
               date={date}
               mealType={mt}
               recipes={slotRecipes}
+              allRecipes={allRecipes}
+              frequency={frequency}
               onRemove={onRemove}
-              onDrop={onDrop}
+              onAdd={onAdd}
             />
           );
         })}
       </div>
 
       {/* Day nutrition summary */}
-      {allRecipes.length > 0 && (
+      {dayRecipes.length > 0 && (
         <div className="mt-2 pt-2 border-t text-center text-[10px] text-muted-foreground">
           {dayNutrition.calories} cal
         </div>
