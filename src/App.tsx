@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-do
 import {
   LayoutDashboard,
   UtensilsCrossed,
+  BookOpen,
   CalendarDays,
   ClipboardList,
   Settings as SettingsIcon,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import Dashboard from '@/pages/Dashboard';
 import Recipes from '@/pages/Recipes';
+import Catalog from '@/pages/Catalog';
 import Planner from '@/pages/Planner';
 import FoodLog from '@/pages/FoodLog';
 import Settings from '@/pages/Settings';
@@ -23,6 +25,7 @@ import { useTheme } from '@/hooks/useTheme';
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/recipes', label: 'Recipes', icon: UtensilsCrossed },
+  { to: '/catalog', label: 'Catalog', icon: BookOpen },
   { to: '/planner', label: 'Planner', icon: CalendarDays },
   { to: '/log', label: 'Food Log', icon: ClipboardList },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -82,6 +85,7 @@ function AuthenticatedLayout() {
         <Routes>
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
+          <Route path="/catalog" element={<ProtectedRoute><Catalog /></ProtectedRoute>} />
           <Route path="/planner" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
           <Route path="/log" element={<ProtectedRoute><FoodLog /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

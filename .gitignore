@@ -4,3 +4,4 @@ dist
 !.env.example
 .vercel
 coverage
+scripts/scrape-giallozafferano/data/progress.json

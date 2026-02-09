@@ -1,0 +1,23 @@
+{
+  "name": "scrape-giallozafferano",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "discover": "tsx src/discover.ts",
+    "scrape": "tsx src/index.ts --scrape-only",
+    "estimate": "tsx src/index.ts --estimate-only",
+    "upload": "tsx src/index.ts --upload-only"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,6 +1,7 @@
-import type { Recipe, MealPlan, FoodLogEntry, UserSettings, Ingredient, LoggedFood, MealType } from '@/types';
+import type { Recipe, CatalogRecipe, MealPlan, FoodLogEntry, UserSettings, Ingredient, LoggedFood, MealType } from '@/types';
 import type { Database, Json } from '@/types/supabase';
 
+type CatalogRecipeRow = Database['public']['Tables']['catalog_recipes']['Row'];
 type RecipeRow = Database['public']['Tables']['recipes']['Row'];
 type RecipeInsert = Database['public']['Tables']['recipes']['Insert'];
 type RecipeUpdate = Database['public']['Tables']['recipes']['Update'];
@@ -12,6 +13,46 @@ type FoodLogInsert = Database['public']['Tables']['food_log_entries']['Insert'];
 type FoodLogUpdate = Database['public']['Tables']['food_log_entries']['Update'];
 type SettingsRow = Database['public']['Tables']['user_settings']['Row'];
 type SettingsUpdate = Database['public']['Tables']['user_settings']['Update'];
+
+// ── Catalog Recipes ──
+
+export function catalogRecipeFromRow(row: CatalogRecipeRow): CatalogRecipe {
+  return {
+    id: row.id,
+    name: row.name,
+    sourceUrl: row.source_url,
+    sourceCategory: row.source_category,
+    category: row.category as MealType,
+    imageUrl: row.image_url ?? undefined,
+    ingredients: row.ingredients as unknown as Ingredient[],
+    instructions: row.instructions as unknown as string[],
+    prepTime: row.prep_time,
+    cookTime: row.cook_time,
+    servings: row.servings,
+    nutrition: {
+      calories: row.calories,
+      protein: row.protein,
+      carbs: row.carbs,
+      fat: row.fat,
+    },
+    createdAt: new Date(row.created_at ?? Date.now()),
+  };
+}
+
+export function catalogToUserRecipe(
+  catalog: CatalogRecipe,
+): Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> {
+  return {
+    name: catalog.name,
+    category: catalog.category,
+    ingredients: catalog.ingredients,
+    instructions: catalog.instructions,
+    prepTime: catalog.prepTime,
+    cookTime: catalog.cookTime,
+    servings: catalog.servings,
+    nutrition: catalog.nutrition,
+  };
+}
 
 // ── Recipes ──
 

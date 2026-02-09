@@ -70,3 +70,19 @@ export interface UserSettings {
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface CatalogRecipe {
+  id: string;
+  name: string;
+  sourceUrl: string;
+  sourceCategory: string;
+  category: MealType;
+  imageUrl?: string;
+  ingredients: Ingredient[];
+  instructions: string[];
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  nutrition: NutritionInfo;
+  createdAt: Date;
+}

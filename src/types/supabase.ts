@@ -39,6 +39,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_recipes: {
+        Row: {
+          calories: number
+          carbs: number
+          category: string
+          cook_time: number
+          created_at: string | null
+          fat: number
+          id: string
+          image_url: string | null
+          ingredients: Json
+          instructions: Json
+          name: string
+          prep_time: number
+          protein: number
+          servings: number
+          source_category: string
+          source_url: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          category: string
+          cook_time?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          name: string
+          prep_time?: number
+          protein?: number
+          servings?: number
+          source_category: string
+          source_url: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          category?: string
+          cook_time?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          name?: string
+          prep_time?: number
+          protein?: number
+          servings?: number
+          source_category?: string
+          source_url?: string
+        }
+        Relationships: []
+      }
       food_log_entries: {
         Row: {
           created_at: string | null
