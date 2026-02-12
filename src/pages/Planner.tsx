@@ -3,6 +3,8 @@ import { usePlannerStore } from '@/stores/plannerStore';
 import { useRecipeStore } from '@/stores/recipeStore';
 import type { Recipe, MealType } from '@/types';
 import { WeeklyCalendar } from '@/components/planner/WeeklyCalendar';
+import { ShoppingList } from '@/components/planner/ShoppingList';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useRecipeFrequency } from '@/hooks/useRecipeFrequency';
 
 /** Get Monday of the week containing the given date */
@@ -60,18 +62,31 @@ export default function Planner() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Meal Planner</h1>
 
-      <WeeklyCalendar
-        weekStart={weekStart}
-        plans={plans}
-        recipesById={recipesById}
-        allRecipes={recipes}
-        frequency={frequency}
-        onPrevWeek={() => setWeekStart(shiftWeek(weekStart, -1))}
-        onNextWeek={() => setWeekStart(shiftWeek(weekStart, 1))}
-        onToday={() => setWeekStart(getMonday(todayStr))}
-        onRemove={handleRemove}
-        onAdd={handleAdd}
-      />
+      <Tabs defaultValue="plan">
+        <TabsList>
+          <TabsTrigger value="plan">Meal Plan</TabsTrigger>
+          <TabsTrigger value="shopping">Shopping List</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="plan">
+          <WeeklyCalendar
+            weekStart={weekStart}
+            plans={plans}
+            recipesById={recipesById}
+            allRecipes={recipes}
+            frequency={frequency}
+            onPrevWeek={() => setWeekStart(shiftWeek(weekStart, -1))}
+            onNextWeek={() => setWeekStart(shiftWeek(weekStart, 1))}
+            onToday={() => setWeekStart(getMonday(todayStr))}
+            onRemove={handleRemove}
+            onAdd={handleAdd}
+          />
+        </TabsContent>
+
+        <TabsContent value="shopping">
+          <ShoppingList plans={plans} weekStart={weekStart} recipesById={recipesById} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
