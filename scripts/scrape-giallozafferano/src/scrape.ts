@@ -8,29 +8,71 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function parseItalianIngredient(text: string): RawIngredient {
-  // Patterns like "200 g di farina", "1 cucchiaio di olio", "2 uova", "q.b. sale"
-  const match = text.match(/^([\d.,/½¼¾⅓⅔]+)?\s*(g|kg|ml|l|cl|cucchiai?o?|cucchiain[oi]?|pizzico|spicchi?o?|fett[aei]|rami?|foglie?|mazzetto|bustina?|vasetto)?\s*(?:di\s+)?(.+)$/i);
+const UNITS = 'g|kg|ml|l|cl|dl|cucchiai?o?|cucchiain[oi]?|pizzico|spicchi?o?|fett[aei]|rami?|foglie?|mazzetto|bustina?|vasetto|ciuff[oi]?|bicchier[ei]?';
 
-  if (match) {
-    const amountStr = match[1]?.replace(',', '.') ?? '0';
-    let amount = 0;
-    if (amountStr.includes('/')) {
-      const [num, den] = amountStr.split('/');
-      amount = parseFloat(num) / parseFloat(den);
-    } else {
-      const fractionMap: Record<string, number> = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 0.333, '⅔': 0.667 };
-      amount = fractionMap[amountStr] ?? (parseFloat(amountStr) || 0);
-    }
+function parseAmount(str: string): number {
+  const s = str.replace(',', '.');
+  if (s.includes('/')) {
+    const [num, den] = s.split('/');
+    return parseFloat(num) / parseFloat(den);
+  }
+  const fractionMap: Record<string, number> = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 0.333, '⅔': 0.667 };
+  return fractionMap[s] ?? (parseFloat(s) || 0);
+}
+
+function parseItalianIngredient(text: string): RawIngredient {
+  const trimmed = text.trim();
+
+  // Handle "q.b." (quanto basta) anywhere
+  if (/q\.?\s*b\.?/i.test(trimmed)) {
+    const name = trimmed.replace(/\s*q\.?\s*b\.?\s*/gi, '').trim();
+    return { name: name || trimmed, amount: 0, unit: 'q.b.' };
+  }
+
+  // Pattern 1: "Name 150 g" — amount+unit at END (giallozafferano format)
+  const endMatch = trimmed.match(new RegExp(`^(.+?)\\s+([\\.\\d,/½¼¾⅓⅔]+)\\s*(${UNITS})\\s*$`, 'i'));
+  if (endMatch) {
     return {
-      name: (match[3] ?? text).trim(),
-      amount,
-      unit: (match[2] ?? 'pz').trim(),
+      name: endMatch[1].trim(),
+      amount: parseAmount(endMatch[2]),
+      unit: endMatch[3].trim(),
     };
   }
 
-  return { name: text.trim(), amount: 1, unit: 'pz' };
+  // Pattern 2: "Name 3" — bare number at END (e.g. "Uova 1", "Gamberi 12")
+  const endBareMatch = trimmed.match(/^(.+?)\s+([\d.,/½¼¾⅓⅔]+)\s*$/);
+  if (endBareMatch && endBareMatch[1].length > 1) {
+    return {
+      name: endBareMatch[1].trim(),
+      amount: parseAmount(endBareMatch[2]),
+      unit: 'pz',
+    };
+  }
+
+  // Pattern 3: "150 g di farina" — amount+unit at START (standard format)
+  const startMatch = trimmed.match(new RegExp(`^([\\d.,/½¼¾⅓⅔]+)\\s*(${UNITS})\\s*(?:di\\s+)?(.+)$`, 'i'));
+  if (startMatch) {
+    return {
+      name: startMatch[3].trim(),
+      amount: parseAmount(startMatch[1]),
+      unit: startMatch[2].trim(),
+    };
+  }
+
+  // Pattern 4: "2 uova" — bare number at START
+  const startBareMatch = trimmed.match(/^([\d.,/½¼¾⅓⅔]+)\s+(.+)$/);
+  if (startBareMatch) {
+    return {
+      name: startBareMatch[2].trim(),
+      amount: parseAmount(startBareMatch[1]),
+      unit: 'pz',
+    };
+  }
+
+  return { name: trimmed, amount: 1, unit: 'pz' };
 }
+
+export { parseItalianIngredient };
 
 async function scrapeRecipePage(page: Page, url: string, category: string): Promise<RawRecipe | null> {
   try {
