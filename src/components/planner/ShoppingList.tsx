@@ -72,6 +72,7 @@ export function ShoppingList({ plans, weekStart, recipesById }: ShoppingListProp
         {items.map((item) => {
           const key = `${item.name.toLowerCase()}|${item.unit.toLowerCase()}`;
           const isChecked = checked.has(key);
+          const isQb = item.unit === 'q.b.';
           const amountStr = item.amount % 1 === 0 ? String(item.amount) : item.amount.toFixed(1);
 
           return (
@@ -84,9 +85,18 @@ export function ShoppingList({ plans, weekStart, recipesById }: ShoppingListProp
                   className="size-4 shrink-0 rounded"
                 />
                 <span className={isChecked ? 'text-muted-foreground line-through' : ''}>
-                  <span className="font-medium">{amountStr}</span>{' '}
-                  <span className="text-muted-foreground">{item.unit}</span>{' '}
-                  <span>{item.name}</span>
+                  {isQb ? (
+                    <>
+                      <span>{item.name}</span>{' '}
+                      <span className="text-muted-foreground">q.b.</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium">{amountStr}</span>{' '}
+                      <span className="text-muted-foreground">{item.unit}</span>{' '}
+                      <span>{item.name}</span>
+                    </>
+                  )}
                 </span>
               </label>
             </li>

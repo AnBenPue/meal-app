@@ -8,7 +8,8 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-const UNITS = 'g|kg|ml|l|cl|dl|cucchiai?o?|cucchiain[oi]?|pizzico|spicchi?o?|fett[aei]|rami?|foglie?|mazzetto|bustina?|vasetto|ciuff[oi]?|bicchier[ei]?';
+// Longer units MUST come before shorter ones to avoid greedy prefix matches (e.g. 'ml' before 'l')
+const UNITS = 'kg|ml|cl|dl|cucchiai?o?|cucchiain[oi]?|pizzico|spicchi?o?|fett[aei]|bicchier[ei]?|foglie?|mazzetto|bustina?|vasetto|ciuff[oi]?|rametti?|rami?|g|l';
 
 function parseAmount(str: string): number {
   const s = str.replace(',', '.');
@@ -20,8 +21,15 @@ function parseAmount(str: string): number {
   return fractionMap[s] ?? (parseFloat(s) || 0);
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&frac12;/g, '½')
+    .replace(/&frac14;/g, '¼')
+    .replace(/&frac34;/g, '¾');
+}
+
 function parseItalianIngredient(text: string): RawIngredient {
-  const trimmed = text.trim();
+  const trimmed = decodeHtmlEntities(text.trim());
 
   // Handle "q.b." (quanto basta) anywhere
   if (/q\.?\s*b\.?/i.test(trimmed)) {
@@ -30,7 +38,7 @@ function parseItalianIngredient(text: string): RawIngredient {
   }
 
   // Pattern 1: "Name 150 g" — amount+unit at END (giallozafferano format)
-  const endMatch = trimmed.match(new RegExp(`^(.+?)\\s+([\\.\\d,/½¼¾⅓⅔]+)\\s*(${UNITS})\\s*$`, 'i'));
+  const endMatch = trimmed.match(new RegExp(`^(.+?)\\s+([\\.\\d,/½¼¾⅓⅔]+)\\s*(${UNITS})(?![a-zA-Zà-ü])\\s*$`, 'i'));
   if (endMatch) {
     return {
       name: endMatch[1].trim(),
@@ -50,7 +58,7 @@ function parseItalianIngredient(text: string): RawIngredient {
   }
 
   // Pattern 3: "150 g di farina" — amount+unit at START (standard format)
-  const startMatch = trimmed.match(new RegExp(`^([\\d.,/½¼¾⅓⅔]+)\\s*(${UNITS})\\s*(?:di\\s+)?(.+)$`, 'i'));
+  const startMatch = trimmed.match(new RegExp(`^([\\d.,/½¼¾⅓⅔]+)\\s*(${UNITS})(?![a-zA-Zà-ü])\\s*(?:di\\s+)?(.+)$`, 'i'));
   if (startMatch) {
     return {
       name: startMatch[3].trim(),
