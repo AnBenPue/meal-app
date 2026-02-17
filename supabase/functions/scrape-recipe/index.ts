@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
     const { url } = body;
 
     if (!url || typeof url !== "string") {
-      return jsonResponse({ error: "Missing or invalid URL" }, 400);
+      return jsonResponse({ error: "Missing or invalid URL" });
     }
 
     // Validate URL scheme
@@ -358,11 +358,11 @@ Deno.serve(async (req) => {
     try {
       parsedUrl = new URL(url);
     } catch {
-      return jsonResponse({ error: "Invalid URL format" }, 400);
+      return jsonResponse({ error: "Invalid URL format" });
     }
 
     if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      return jsonResponse({ error: "Only http and https URLs are supported" }, 400);
+      return jsonResponse({ error: "Only http and https URLs are supported" });
     }
 
     // Fetch the page with timeout
@@ -382,9 +382,9 @@ Deno.serve(async (req) => {
       });
     } catch (err) {
       if ((err as Error).name === "AbortError") {
-        return jsonResponse({ error: "Request timed out fetching the URL" }, 504);
+        return jsonResponse({ error: "Request timed out fetching the URL" });
       }
-      return jsonResponse({ error: "Failed to fetch the URL" }, 502);
+      return jsonResponse({ error: "Failed to fetch the URL" });
     } finally {
       clearTimeout(timeout);
     }
@@ -392,7 +392,6 @@ Deno.serve(async (req) => {
     if (!pageRes.ok) {
       return jsonResponse(
         { error: `The URL returned HTTP ${pageRes.status}` },
-        502,
       );
     }
 
@@ -402,13 +401,12 @@ Deno.serve(async (req) => {
     if (!recipeData) {
       return jsonResponse(
         { error: "No recipe data found on this page. The site may not include structured recipe data." },
-        422,
       );
     }
 
     const recipe = normalizeRecipe(recipeData);
     return jsonResponse(recipe);
   } catch {
-    return jsonResponse({ error: "Internal server error" }, 500);
+    return jsonResponse({ error: "Internal server error" });
   }
 });
