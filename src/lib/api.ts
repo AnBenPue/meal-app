@@ -141,12 +141,15 @@ export async function scrapeRecipe(url: string): Promise<ScrapedRecipe> {
   });
 
   if (error) {
+    // supabase.functions.invoke wraps non-2xx responses as FunctionsHttpError
+    // with a generic message. The actual error body is in error.context.
+    const context = (error as { context?: unknown }).context;
+    if (context && typeof context === 'object' && 'error' in context) {
+      throw new Error((context as { error: string }).error);
+    }
     throw new Error(error.message || 'Recipe scraping failed');
   }
 
-  // The edge function returns { error } with a non-2xx status which
-  // supabase.functions.invoke surfaces as FunctionsHttpError.
-  // If we still got an error field in the body, surface it.
   if (data?.error) {
     throw new Error(data.error);
   }

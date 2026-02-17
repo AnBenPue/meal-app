@@ -17,13 +17,28 @@ function jsonResponse(body: unknown, status = 200) {
 // ── JSON-LD extraction ──
 
 function extractJsonLdRecipe(html: string): Record<string, unknown> | null {
-  const scriptRegex =
-    /<script[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let match;
+  // Use indexOf-based extraction instead of regex to handle large HTML reliably
+  const TAG_OPEN = 'application/ld+json';
+  const SCRIPT_CLOSE = '</script>';
+  let pos = 0;
 
-  while ((match = scriptRegex.exec(html)) !== null) {
+  while (true) {
+    const tagIdx = html.indexOf(TAG_OPEN, pos);
+    if (tagIdx === -1) break;
+
+    // Find the end of the opening <script> tag
+    const contentStart = html.indexOf('>', tagIdx);
+    if (contentStart === -1) break;
+
+    // Find the closing </script>
+    const contentEnd = html.indexOf(SCRIPT_CLOSE, contentStart);
+    if (contentEnd === -1) break;
+
+    const jsonStr = html.slice(contentStart + 1, contentEnd).trim();
+    pos = contentEnd + SCRIPT_CLOSE.length;
+
     try {
-      const json = JSON.parse(match[1]);
+      const json = JSON.parse(jsonStr);
       const recipe = findRecipeInJsonLd(json);
       if (recipe) return recipe;
     } catch {
@@ -352,16 +367,18 @@ Deno.serve(async (req) => {
 
     // Fetch the page with timeout
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
     let pageRes: Response;
     try {
       pageRes = await fetch(url, {
         signal: controller.signal,
         headers: {
-          "User-Agent": "MealApp/1.0 RecipeScraper",
-          Accept: "text/html",
+          "User-Agent":
+            "Mozilla/5.0 (compatible; MealApp/1.0; +https://mealappws.vercel.app)",
+          Accept: "text/html,application/xhtml+xml",
         },
+        redirect: "follow",
       });
     } catch (err) {
       if ((err as Error).name === "AbortError") {
