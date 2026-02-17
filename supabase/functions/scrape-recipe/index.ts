@@ -324,10 +324,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify JWT
+    // Verify JWT (gateway verify_jwt is disabled; we check ourselves)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return jsonResponse({ error: "Missing authorization header" }, 401);
+      return jsonResponse({ error: "Missing authorization header" });
     }
 
     const supabase = createClient(
@@ -342,8 +342,10 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
+      return jsonResponse({ error: "Unauthorized" });
     }
+
+    console.log("scrape-recipe: authenticated user", user.id);
 
     // Parse request
     const body = await req.json();
@@ -352,6 +354,8 @@ Deno.serve(async (req) => {
     if (!url || typeof url !== "string") {
       return jsonResponse({ error: "Missing or invalid URL" });
     }
+
+    console.log("scrape-recipe: fetching", url);
 
     // Validate URL scheme
     let parsedUrl: URL;
@@ -381,6 +385,7 @@ Deno.serve(async (req) => {
         redirect: "follow",
       });
     } catch (err) {
+      console.error("scrape-recipe: fetch error", (err as Error).message);
       if ((err as Error).name === "AbortError") {
         return jsonResponse({ error: "Request timed out fetching the URL" });
       }
@@ -389,6 +394,8 @@ Deno.serve(async (req) => {
       clearTimeout(timeout);
     }
 
+    console.log("scrape-recipe: page status", pageRes.status, "content-length", pageRes.headers.get("content-length"));
+
     if (!pageRes.ok) {
       return jsonResponse(
         { error: `The URL returned HTTP ${pageRes.status}` },
@@ -396,7 +403,10 @@ Deno.serve(async (req) => {
     }
 
     const html = await pageRes.text();
+    console.log("scrape-recipe: html length", html.length);
+
     const recipeData = extractJsonLdRecipe(html);
+    console.log("scrape-recipe: recipe found", !!recipeData);
 
     if (!recipeData) {
       return jsonResponse(
@@ -405,8 +415,10 @@ Deno.serve(async (req) => {
     }
 
     const recipe = normalizeRecipe(recipeData);
+    console.log("scrape-recipe: success, recipe name:", recipe.name);
     return jsonResponse(recipe);
-  } catch {
+  } catch (err) {
+    console.error("scrape-recipe: unhandled error", (err as Error).message, (err as Error).stack);
     return jsonResponse({ error: "Internal server error" });
   }
 });
