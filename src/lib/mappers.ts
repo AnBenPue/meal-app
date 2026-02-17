@@ -1,5 +1,6 @@
 import type { Recipe, CatalogRecipe, MealPlan, FoodLogEntry, UserSettings, Ingredient, LoggedFood, MealType } from '@/types';
 import type { Database, Json } from '@/types/supabase';
+import type { ScrapedRecipe } from '@/lib/api';
 
 type CatalogRecipeRow = Database['public']['Tables']['catalog_recipes']['Row'];
 type RecipeRow = Database['public']['Tables']['recipes']['Row'];
@@ -51,6 +52,36 @@ export function catalogToUserRecipe(
     cookTime: catalog.cookTime,
     servings: catalog.servings,
     nutrition: catalog.nutrition,
+  };
+}
+
+// ── Scraped Recipe → Form Data ──
+
+const KNOWN_UNITS = new Set(['g', 'oz', 'ml', 'cup', 'tbsp', 'tsp', 'piece', 'slice']);
+
+export function scrapedToRecipeFormData(
+  scraped: ScrapedRecipe,
+): Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> {
+  const ingredients: Ingredient[] = scraped.ingredients.map((ing) => ({
+    name: ing.name,
+    amount: ing.amount,
+    unit: KNOWN_UNITS.has(ing.unit) ? ing.unit : 'g',
+  }));
+
+  return {
+    name: scraped.name,
+    category: 'dinner',
+    ingredients,
+    instructions: scraped.instructions,
+    prepTime: scraped.prepTime,
+    cookTime: scraped.cookTime,
+    servings: scraped.servings,
+    nutrition: {
+      calories: scraped.nutrition.calories,
+      protein: scraped.nutrition.protein,
+      carbs: scraped.nutrition.carbs,
+      fat: scraped.nutrition.fat,
+    },
   };
 }
 

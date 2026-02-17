@@ -19,6 +19,7 @@ type RecipeFormData = Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>;
 
 interface RecipeFormProps {
   initial?: Recipe;
+  defaultValues?: RecipeFormData;
   onSubmit: (data: RecipeFormData) => void;
   onCancel: () => void;
 }
@@ -32,17 +33,20 @@ const EMPTY_INGREDIENT: Ingredient = {
 
 const UNITS = ['g', 'oz', 'ml', 'cup', 'tbsp', 'tsp', 'piece', 'slice'];
 
-export function RecipeForm({ initial, onSubmit, onCancel }: RecipeFormProps) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [category, setCategory] = useState<MealType>(initial?.category ?? 'dinner');
-  const [prepTime, setPrepTime] = useState(initial?.prepTime ?? 0);
-  const [cookTime, setCookTime] = useState(initial?.cookTime ?? 0);
-  const [servings, setServings] = useState(initial?.servings ?? 1);
+export function RecipeForm({ initial, defaultValues, onSubmit, onCancel }: RecipeFormProps) {
+  const prefill = initial ?? defaultValues;
+  const isEditing = !!initial;
+
+  const [name, setName] = useState(prefill?.name ?? '');
+  const [category, setCategory] = useState<MealType>(prefill?.category ?? 'dinner');
+  const [prepTime, setPrepTime] = useState(prefill?.prepTime ?? 0);
+  const [cookTime, setCookTime] = useState(prefill?.cookTime ?? 0);
+  const [servings, setServings] = useState(prefill?.servings ?? 1);
   const [ingredients, setIngredients] = useState<Ingredient[]>(
-    initial?.ingredients.length ? initial.ingredients : [{ ...EMPTY_INGREDIENT }],
+    prefill?.ingredients.length ? prefill.ingredients : [{ ...EMPTY_INGREDIENT }],
   );
   const [instructions, setInstructions] = useState<string[]>(
-    initial?.instructions.length ? initial.instructions : [''],
+    prefill?.instructions.length ? prefill.instructions : [''],
   );
 
   const totalNutrition = useMemo(() => calculateRecipeNutrition(ingredients), [ingredients]);
@@ -355,7 +359,7 @@ export function RecipeForm({ initial, onSubmit, onCancel }: RecipeFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={!name.trim()}>
-          {initial ? 'Update Recipe' : 'Add Recipe'}
+          {isEditing ? 'Update Recipe' : 'Add Recipe'}
         </Button>
       </div>
     </form>

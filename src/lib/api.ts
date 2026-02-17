@@ -113,6 +113,47 @@ export function extractNutrition(
   };
 }
 
+// ── Recipe URL scraping ──
+
+export interface ScrapedRecipe {
+  name: string;
+  ingredients: { name: string; amount: number; unit: string }[];
+  instructions: string[];
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  nutrition: NutritionInfo;
+  imageUrl?: string;
+}
+
+/**
+ * Scrape a recipe from a URL via the scrape-recipe Edge Function.
+ * The server fetches the page and extracts JSON-LD Recipe data.
+ */
+export async function scrapeRecipe(url: string): Promise<ScrapedRecipe> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase.functions.invoke('scrape-recipe', {
+    body: { url },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Recipe scraping failed');
+  }
+
+  // The edge function returns { error } with a non-2xx status which
+  // supabase.functions.invoke surfaces as FunctionsHttpError.
+  // If we still got an error field in the body, surface it.
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  return data as ScrapedRecipe;
+}
+
 /**
  * Parse USDA search result into a simplified nutrition object.
  * Nutrition values are per 100g.
