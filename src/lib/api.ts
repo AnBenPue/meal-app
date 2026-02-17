@@ -142,10 +142,16 @@ export async function scrapeRecipe(url: string): Promise<ScrapedRecipe> {
 
   if (error) {
     // supabase.functions.invoke wraps non-2xx responses as FunctionsHttpError
-    // with a generic message. The actual error body is in error.context.
-    const context = (error as { context?: unknown }).context;
-    if (context && typeof context === 'object' && 'error' in context) {
-      throw new Error((context as { error: string }).error);
+    // with a generic message. error.context is the raw Response object —
+    // read the JSON body to get our descriptive error.
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === 'function') {
+      try {
+        const body = await ctx.json();
+        if (body?.error) throw new Error(body.error);
+      } catch (e) {
+        if (e instanceof Error && e.message !== error.message) throw e;
+      }
     }
     throw new Error(error.message || 'Recipe scraping failed');
   }
